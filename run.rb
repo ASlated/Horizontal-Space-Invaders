@@ -14,6 +14,11 @@ class GameWindow < Gosu::Window
   def initialize
     super 256, 240, true
     Gosu::enable_undocumented_retrofication
+    @song = Gosu::Song.new("assets/sounds/music.mp3")
+    @song.volume = 0.1
+    @song.play(true)
+    @explosion = Gosu::Sample.new("assets/sounds/explosion.mp3")
+    @shoot = Gosu::Sample.new("assets/sounds/shoot.mp3")
     @player = Player.new(Gosu::Image::load_tiles("assets/images/ship.png", 20, 18))
     @enemies = []
     @lives = 3
@@ -53,7 +58,12 @@ class GameWindow < Gosu::Window
     @background[:y] = -(@player.y / 256.0) * (320 - 256)
     @lasers.each do |laser|
       laser[:x] += 5
-      @enemies.reject! { |enemy| Gosu::distance(laser[:x], laser[:y], enemy.x + enemy.animation[0].width / 2, enemy.y + enemy.animation[0].height / 2) < enemy.animation[0].height / 2 }
+      @enemies.each do |enemy|
+        if Gosu::distance(laser[:x], laser[:y], enemy.x + enemy.animation[0].width / 2, enemy.y + enemy.animation[0].height / 2) < enemy.animation[0].height / 2
+          @enemies.delete(enemy)
+          @explosion.play(0.2)
+        end
+      end
     end
     @lasers.reject! { |laser| laser[:x] > 256 }
     @counter += 1
@@ -103,6 +113,7 @@ class GameWindow < Gosu::Window
     else
       @lasers.push({img: Gosu::Image.new("assets/images/laser.png"), x: @player.x + 12, y: @player.y + 8})
     end
+    @shoot.play(0.05)
   end
 
 end
