@@ -1,5 +1,3 @@
-BLAST_CHARGING_TIME = 90
-
 require 'gosu'
 require './player.rb'
 require './enemy.rb'
@@ -11,17 +9,23 @@ end
 
 class GameWindow < Gosu::Window
 
+  WIDTH = 256
+  HEIGHT = 240
+  BLAST_CHARGING_TIME = 90
+  TOTAL_LIVES = 20
+  VOLUMES = {song: 0.1, explosion: 0.2, shoot: 0.05}
+
   def initialize
-    super 256, 240, true
+    super WIDTH, HEIGHT, true
     Gosu::enable_undocumented_retrofication
     @song = Gosu::Song.new("assets/sounds/music.mp3")
-    @song.volume = 0.1
+    @song.volume = VOLUMES[:song]
     @song.play(true)
     @explosion = Gosu::Sample.new("assets/sounds/explosion.mp3")
     @shoot = Gosu::Sample.new("assets/sounds/shoot.mp3")
     @player = Player.new(Gosu::Image::load_tiles("assets/images/ship.png", 20, 18))
+    puts @player.inspect
     @enemies = []
-    @lives = 3
     @enemies_speed = 1
     @alien_anim = Gosu::Image::load_tiles("assets/images/alien.png", 22, 16)
     @background = {x: 0, y: 0, img: Gosu::Image.new("assets/images/background.png")}
@@ -33,12 +37,22 @@ class GameWindow < Gosu::Window
     puts @alien_anim.inspect
   end
 
+  def lives
+    @lives ||= TOTAL_LIVES.times.map do |life|
+      Gosu::Image.new("assets/images/life.png")
+    end
+  end
+
+  def die
+    @lives.delete_at(-1)
+  end
+
   def update
     if Gosu::button_down?(Gosu::KbQ)
-      @player.move("up")
+      @player.move_up
     end
     if Gosu::button_down?(Gosu::KbA)
-      @player.move("down")
+      @player.move_down
     end
     if Gosu::button_down?(Gosu::KbSpace)
       create_laser if !@space_pressed
@@ -61,7 +75,7 @@ class GameWindow < Gosu::Window
       @enemies.each do |enemy|
         if Gosu::distance(laser[:x], laser[:y], enemy.x + enemy.animation[0].width / 2, enemy.y + enemy.animation[0].height / 2) < enemy.animation[0].height / 2
           @enemies.delete(enemy)
-          @explosion.play(0.2)
+          @explosion.play(VOLUMES[:explosion])
         end
       end
     end
@@ -71,25 +85,23 @@ class GameWindow < Gosu::Window
       @enemies.push(Enemy.new(@alien_anim))
       @counter = 0
       @counter_limit = rand(10) + 30
-      @enemies_speed += 0.001
+      @enemies_speed += 0.003
     end
     @enemies.each { |enemy| enemy.speed = @enemies_speed }
     @enemies.each { |enemy| enemy.move }
     @enemies.each do |enemy|
       if enemy.x <= -enemy.animation[0].width
-        @lives -= 1
+        die
         @enemies.delete(enemy)
       end
     end
-    if @lives < 0
-      close
-    end
+    close if lives.empty?
   end
 
   def draw
     @lasers.each { |laser| laser[:img].draw(laser[:x], laser[:y], ZOrder::Laser) }
-    @lives.times do |life|
-      Gosu::Image.new("assets/images/life.png").draw((8 * life) + 8, 8, ZOrder::UI)
+    lives.each_with_index do |life,index|
+      life.draw((8 * index) + 8, 8, ZOrder::UI)
     end
     if @blast_counter >= BLAST_CHARGING_TIME
       @player.draw_fast
@@ -113,7 +125,7 @@ class GameWindow < Gosu::Window
     else
       @lasers.push({img: Gosu::Image.new("assets/images/laser.png"), x: @player.x + 12, y: @player.y + 8})
     end
-    @shoot.play(0.05)
+    @shoot.play(VOLUMES[:shoot])
   end
 
 end

@@ -7,13 +7,12 @@ class Player
     @y = 24
   end
 
-  def move(dir)
-    if dir == "up" && @y > 8
-      @y -= 2
-    end
-    if dir == "down" && @y < 240 - 8 - @animation[0].height
-      @y += 2
-    end
+  def move_up
+    @y -= 2 if @y > 8
+  end
+
+  def move_down
+    @y += 2 if @y < 240 - 8 - @animation[0].height
   end
 
   def draw
